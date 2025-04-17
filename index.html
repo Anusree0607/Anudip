@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Viewport: Ensures page scales correctly on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Preview: Page fits phone screens without zooming or horizontal scrolling -->
+
+    <!-- SEO: Improves search engine ranking and social media sharing -->
+    <meta name="description" content="Secure UPI: AI-powered fraud detection for UPI transactions">
+    <meta property="og:title" content="Secure UPI - Fraud Detection">
+    <meta property="og:description" content="Identify fraudulent UPI transactions in real-time">
+    <meta property="og:image" content="/static/images/logo.png">
+    <!-- Preview: Shows title, description, and image when shared on social media -->
+
+    <title>Secure UPI - Fraud Detection</title>
+
+    <!-- Favicon: Displays a logo in browser tabs -->
+    <link rel="icon" href="/static/favicon.ico">
+    <!-- Preview: Small UPI logo appears in browser tab -->
+
+    <!-- Performance: Preload Bootstrap CSS for faster loading -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
+    <!-- Preview: Styles load faster, reducing blank screen time -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            padding-top: 60px;
+            background: linear-gradient(to bottom right, #fdfbfb, #ebedee);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .content-section {
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            position: absolute;
+            width: 100%;
+            left: 0;
+            top: 60px;
+            padding: 20px;
+        }
+        
+        .content-section.active {
+            display: block;
+            position: relative;
+            opacity: 1;
+            z-index: 1;
+        }
+        
+        #home h2 {
+            background: linear-gradient(to right, #e53935, #8e24aa);
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        #login-form {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        #login-form input {
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 1rem;
+        }
+        
+        #login-form button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            background: linear-gradient(to right, #ff5722, #9c27b0);
+            border: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+        
+        #login-form button:hover {
+            background: linear-gradient(to right, #e64a19, #7b1fa2);
+        }
+        
+        #upload-form, #check-form {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        #upload-form button, #check-form button {
+            background: linear-gradient(to right, #ff5722, #9c27b0);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-weight: 600;
+            border-radius: 20px;
+            transition: background 0.3s;
+        }
+
+        #upload-form button:hover, #check-form button:hover {
+            background: linear-gradient(to right, #e64a19, #7b1fa2);
+            color: #fff;
+        }
+
+        form input, form select {
+            border: none;
+            border-bottom: 2px solid #ccc;
+            border-radius: 0;
+            box-shadow: none;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        form input:focus, form select:focus {
+            border-color: #8e24aa;
+        }
+
+        .content-section h2 {
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-link.active {
+            border-bottom: 2px solid #8e24aa;
+            font-weight: bold;
+        }
+
+        /* Accessibility: Clear focus styles for keyboard navigation */
+        button:focus, input:focus, select:focus, a:focus {
+            outline: 2px solid #8e24aa;
+            outline-offset: 2px;
+        }
+        /* Preview: Focused buttons/inputs/links show a purple outline */
+        
+        /* Consistency: Style flash messages consistently */
+        .flash-message {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        /* Preview: Flash messages (e.g., "Login successful!") appear centered above forms */
+    </style>
+    <!-- Performance: Defer Chart.js to speed up initial load -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <!-- Preview: Charts load after page content, improving initial render speed -->
+    
+    <!-- Functionality: Add Bootstrap JS for navbar toggle and tooltips -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Preview: Navbar collapses/expands on mobile; tooltips appear on hover -->
+</head>
+<body>
+    <!-- Usability: Display flash messages from Flask -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-message mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    <!-- Preview: Shows "Login successful!" (green) or "Invalid credentials" (red) above content -->
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Secure UPI</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <!-- Usability: Add tooltips and active state -->
+                    <li class="nav-item"><a class="nav-link nav-btn active" href="#" data-target="home" title="View homepage">Home</a></li>
+                    <li class="nav-item"><a class="nav-link nav-btn" href="#" data-target="login" title="Log in">Login</a></li>
+                    <li class="nav-item"><a class="nav-link nav-btn" href="#" data-target="upload" title="Upload CSV">Upload</a></li>
+                    <li class="nav-item"><a class="nav-link nav-btn" href="#" data-target="check" title="Check transaction">Check</a></li>
+                    <li class="nav-item"><a class="nav-link nav-btn" href="#" data-target="analysis" title="View analysis">Analysis</a></li>
+                    <!-- Preview: Hovering nav links shows tooltips (e.g., "Log in"); Home has underline -->
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="home" class="content-section active">
+            <div style="background: linear-gradient(to right, #e53935, #8e24aa); color: white; padding: 30px; border-radius: 12px; text-align: center;">
+                <h2>Welcome to Secure UPI Fraud Detection</h2>
+                <p style="font-size: 1.1rem;">Your trusted AI-powered solution for identifying fraudulent UPI transactions in real-time.</p>
+            </div>
+            <div class="text-center my-4">
+                <!-- Consistency: Fix Paytm image path -->
+                <!-- Performance: Add loading="lazy" -->
+                <!-- Accessibility: Improve alt text -->
+                <img src="/static/images/gpay.png" alt="Google Pay logo" height="90" loading="lazy">
+                <img src="/static/images/phonepe.png" alt="PhonePe logo" height="140" loading="lazy">
+                <img src="/static/images/paytm.png" alt="Paytm logo" height="60" loading="lazy">
+                <img src="/static/images/bhim.png" alt="BHIM logo" height="60" loading="lazy">
+                <!-- Preview: Images load when scrolled into view; Paytm uses local image -->
+            </div>
+            <div class="row text-center mt-4">
+                <div class="col-md-4">
+                    <div class="p-3 border rounded shadow-sm bg-white">
+                        <h5 class="text-primary">Upload CSV</h5>
+                        <p>Batch process multiple UPI transactions at once to detect anomalies.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded shadow-sm bg-white">
+                        <h5 class="text-success">Real-Time Check</h5>
+                        <p>Verify suspicious transactions instantly with detailed features.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded shadow-sm bg-white">
+                        <h5 class="text-warning">Smart Analysis</h5>
+                        <p>Visual reports and ML insights to understand patterns in frauds.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="login" class="content-section">
+            <h2 id="login-title">Login</h2>
+            <div id="login-flash" class="mt-2"></div>
+            <form id="login-form" method="post" action="/login" aria-labelledby="login-title">
+                <!-- Accessibility: Add labels -->
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input id="username" class="form-control mb-2" type="text" name="username" placeholder="Username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input id="password" class="form-control mb-2" type="password" name="password" placeholder="Password" required>
+                </div>
+                <!-- Preview: Screen readers announce "Username" and "Password" -->
+                
+                <button type="submit" class="btn btn-primary">
+                    <span class="spinner-border spinner-border-sm d-none me-2" id="login-spinner"></span>
+                    Login
+                </button>
+                <!-- Usability: Add reset button -->
+                <button type="reset" class="btn btn-secondary ms-2">Clear</button>
+                <!-- Preview: "Clear" button resets username/password fields -->
+            </form>
+        </div>
+
+        <div id="upload" class="content-section">
+            <h2 id="upload-title">Upload Transaction CSV</h2>
+            <form id="upload-form" class="mt-3" aria-labelledby="upload-title">
+                <div class="mb-3">
+                    <!-- Accessibility: Add label -->
+                    <label for="file" class="form-label">Select CSV File</label>
+                    <!-- Usability: Restrict to CSV -->
+                    <input id="file" class="form-control" type="file" name="file" accept=".csv" required>
+                </div>
+                <button class="btn px-4 py-2 d-block mx-auto" type="submit">
+                    <span class="spinner-border spinner-border-sm d-none me-2" id="upload-spinner"></span>
+                    Upload & Predict
+                </button>
+                <button type="reset" class="btn btn-secondary mt-2 d-block mx-auto">Clear</button>
+                <div id="upload-msg" class="mt-3"></div>
+            </form>
+        </div>
+
+        <div id="check" class="content-section">
+            <h2 id="check-title">Check Transaction</h2>
+            <form id="check-form" method="post" action="/predict" class="mt-3" aria-labelledby="check-title">
+                <!-- Accessibility: Add labels -->
+                <div class="mb-3 mx-auto" style="max-width: 400px;">
+                    <label for="user_id" class="form-label">User ID</label>
+                    <input id="user_id" class="form-control" name="user_id" type="text" placeholder="User ID" required>
+                </div>
+                <div class="mb-3 mx-auto" style="max-width: 400px;">
+                    <label for="amount" class="form-label">Amount</label>
+                    <input id="amount" class="form-control" name="amount" type="number" step="0.01" min="0.01" placeholder="Amount" required>
+                </div>
+                <div class="mb-3 mx-auto" style="max-width: 400px;">
+                    <label for="location" class="form-label">Location</label>
+                    <select id="location" class="form-control" name="location" required>
+                        <option value="" disabled selected>Select Location</option>
+                        <option value="Ahmedabad">Ahmedabad</option>
+                        <option value="Pune">Pune</option>
+                        <option value="Jaipur">Jaipur</option>
+                        <option value="Bangalore">Bangalore</option>
+                        <option value="Delhi">Delhi</option>
+                        <option value="Kolkata">Kolkata</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Hyderabad">Hyderabad</option>
+                        <option value="Chennai">Chennai</option>
+                    </select>
+                </div>
+                <div class="mb-3 mx-auto" style="max-width: 400px;">
+                    <label for="transaction_type" class="form-label">Transaction Type</label>
+                    <select id="transaction_type" class="form-control" name="transaction_type" required>
+                        <option value="" disabled selected>Select Transaction Type</option>
+                        <option value="payment">Payment</option>
+                        <option value="transfer">Transfer</option>
+                        <option value="withdrawal">Withdrawal</option>
+                        <option value="deposit">Deposit</option>
+                        <option value="debit">Debit</option>
+                        <option value="credit">Credit</option>
+                    </select>
+                </div>
+                <div class="mb-3 mx-auto" style="max-width: 400px;">
+                    <label for="hour" class="form-label">Hour of Day (0–23)</label>
+                    <input id="hour" class="form-control" name="hour" type="number" min="0" max="23" placeholder="Hour of Day (0–23)" required>
+                </div>
+                <div class="mb-3 mx-auto" style="max-width: 400px;">
+                    <label for="device_id" class="form-label">Device ID</label>
+                    <input id="device_id" class="form-control" name="device_id" type="number" placeholder="Device ID" required>
+                </div>
+                <button class="btn px-4 py-2 d-block mx-auto" type="submit">
+                    <span class="spinner-border spinner-border-sm d-none me-2" id="check-spinner"></span>
+                    Predict
+                </button>
+                <button type="reset" class="btn btn-secondary mt-2 d-block mx-auto">Clear</button>
+                <div id="prediction-result" class="alert alert-info text-center mt-3" style="display: none;"></div>
+            </form>
+        </div>
+
+        <div id="analysis" class="content-section">
+            <h2>Analysis</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Fraud vs Legit</h5>
+                    <canvas id="fraudPie"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <h5>Model Metrics</h5>
+                    <canvas id="modelBar"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Usability: Initialize tooltips (fixes 'bootstrap is not defined')
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[title]').forEach(el => {
+                new bootstrap.Tooltip(el, { trigger: 'hover' });
+            });
+        });
+        // Preview: Hovering nav links shows tooltips like "View homepage"
+
+        // Navigation handling
+        const buttons = document.querySelectorAll('.nav-btn');
+        const sections = document.querySelectorAll('.content-section');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                sections.forEach(section => section.classList.remove('active'));
+                document.getElementById(btn.getAttribute('data-target')).classList.add('active');
+            });
+        });
+
+        // Functionality: Login form submission
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const spinner = document.getElementById('login-spinner');
+            const flashDiv = document.getElementById('login-flash');
+            // Error-handling: Validate inputs
+            if (!formData.get('username') || !formData.get('password')) {
+                flashDiv.innerHTML = `<div class="alert alert-warning">Please fill in all fields.</div>`;
+                return;
+            }
+            spinner.classList.remove('d-none');
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                spinner.classList.add('d-none');
+                if (res.ok) {
+                    window.location.href = '/'; // Redirect to home
+                } else {
+                    flashDiv.innerHTML = `<div class="alert alert-danger">Invalid credentials</div>`;
+                }
+            } catch (err) {
+                spinner.classList.add('d-none');
+                flashDiv.innerHTML = `<div class="alert alert-danger">Something went wrong. Please try again.</div>`;
+            }
+            // Preview: Shows "Please fill in all fields" or redirects to Home on success
+        });
+
+        // Upload form submission
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const fileInput = form.querySelector('input[type="file"]');
+            const spinner = document.getElementById('upload-spinner');
+            const msgDiv = document.getElementById('upload-msg');
+            // Error-handling: Validate file
+            if (!fileInput.files.length) {
+                msgDiv.innerHTML = `<div class="alert alert-warning">Please select a file.</div>`;
+                return;
+            }
+            if (!fileInput.files[0].name.endsWith('.csv')) {
+                msgDiv.innerHTML = `<div class="alert alert-warning">Please select a CSV file.</div>`;
+                return;
+            }
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+            spinner.classList.remove('d-none');
+            msgDiv.innerHTML = '';
+            try {
+                const res = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                spinner.classList.add('d-none');
+                if (res.ok) {
+                    const result = await res.json();
+                    msgDiv.innerHTML = `<div class="alert alert-success">Uploaded and processed. Fraudulent transactions: <strong>${result.fraud_count}</strong> / ${result.total}</div>`;
+                    form.reset();
+                } else {
+                    const err = await res.json();
+                    msgDiv.innerHTML = `<div class="alert alert-danger">Error: ${err.error}</div>`;
+                }
+            } catch (err) {
+                spinner.classList.add('d-none');
+                msgDiv.innerHTML = `<div class="alert alert-danger">Something went wrong. Please try again.</div>`;
+            }
+            // Preview: Shows "Please select a CSV file" or success message with fraud count
+        });
+
+        //Check form
+        document.getElementById('check-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            const spinner = document.getElementById('check-spinner');
+            const resultDiv = document.getElementById('prediction-result');
+            // Error-handling: Validate amount
+            if (parseFloat(data.amount) <= 0) {
+                resultDiv.innerHTML = `<div class="alert alert-warning">Amount must be greater than 0.</div>`;
+                resultDiv.style.display = 'block';
+                return;
+            }
+            spinner.classList.remove('d-none');
+            resultDiv.style.display = 'none';
+            try {
+                const res = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                spinner.classList.add('d-none');
+                if (res.ok) {
+                    const result = await res.json();
+                    resultDiv.innerHTML = `<div class="alert alert-info">Prediction: <strong>${result.prediction}</strong>${
+                        result.fraud_probability ? ` (Fraud Probability: ${(result.fraud_probability * 100).toFixed(2)}%)` : ''
+                    }</div>`;
+                    resultDiv.style.display = 'block';
+                } else {
+                    const error = await res.json();
+                    resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.error}</div>`;
+                    resultDiv.style.display = 'block';
+                }
+            } catch (err) {
+                spinner.classList.add('d-none');
+                resultDiv.innerHTML = `<div class="alert alert-danger">Something went wrong. Please try again.</div>`;
+                resultDiv.style.display = 'block';
+            }
+        });
+
+        // Chart initialization
+        const fraudPie = new Chart(document.getElementById('fraudPie'), {
+            type: 'pie',
+            data: {
+                labels: ['Legit', 'Fraud'],
+                datasets: [{
+                    data: [9744, 256],
+                    backgroundColor: ['#28a745', '#dc3545']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        const modelBar = new Chart(document.getElementById('modelBar'), {
+            type: 'bar',
+            data: {
+                labels: ['Accuracy', 'Precision', 'Recall', 'F1-Score', 'ROC-AUC'],
+                datasets: [{
+                    label: 'Score',
+                    data: [0.9635, 0.6686, 0.8864, 0.7622, 0.9396],
+                    backgroundColor: '#007bff'
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true, max: 1 } }
+            }
+        });
+    </script>
+</body>
+</html>
